@@ -1,0 +1,414 @@
+{
+  "name": "Check Email last day",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 30,
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        752
+      ],
+      "id": "7aa20c8a-7375-4677-8a38-a428bd84cae4",
+      "name": "Gmail",
+      "webhookId": "6422f972-3fe2-4cb6-80d5-a8039a31e1f0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1GGgJub6gtftNy21",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Bình luận / summarize 3 câu về các email như bên dưới. Các email cách nhau bởi dấu ---\n\n{{ $json.concatenated_email }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Bạn là một nhà bình luận chuyên nghiệp. Chỉ trả lời bằng tiếng Việt. Không sử dụng ngôn ngữ khác."
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1552,
+        608
+      ],
+      "id": "36808e26-9444-4080-b519-d2c9efd93a84",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a8426df8-3a02-4d77-a3fa-16fa2711f5c3",
+              "name": "email",
+              "value": "={{ $json.Subject }} : {{ $json.snippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1168,
+        608
+      ],
+      "id": "3303c9ff-83eb-4bfd-a58f-fe7b87c99a2d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "aggregation": "concatenate",
+              "field": "email",
+              "separateBy": "other",
+              "customSeparator": "---"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        608
+      ],
+      "id": "89652fe0-e058-42b0-b2dc-0a2b30392868",
+      "name": "Summarize"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "spaceId": "=spaces/AAAABGqT-dg",
+        "messageUi": {
+          "text": "=<users/114934109996035103879>\nThông tin email trong 24h qua (*{{ $items('Code in JavaScript').length }} email chưa đọc*):\n\n- {{ $('Summarize').item.json.concatenated_email.replaceAll('---', '\\n\\n- ') }}\n\nSummary:\n{{ $json.text }}"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleChat",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        608
+      ],
+      "id": "76148ec2-00c6-4836-bcda-04ec3c3b3688",
+      "name": "Create a message",
+      "webhookId": "a7595e3a-3fc3-4719-a14b-b851dbaf9fe3",
+      "credentials": {
+        "googleChatOAuth2Api": {
+          "id": "RR5xsaNgLe5eeqeg",
+          "name": "Chat account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst twentyFourHours = 24 * 60 * 60 * 1000;\n\nreturn $input.all().filter(item => {\n  const ts = Number(item.json.internalDate);\n  return ts <= now && (now - ts) <= twentyFourHours;\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        752
+      ],
+      "id": "5e360511-f023-4f89-96c6-59f676150bb9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        752
+      ],
+      "id": "d417efc6-e7d6-407f-a3d0-60cf4337dce0",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        208,
+        944
+      ],
+      "id": "f35e9a75-fe6e-4fed-8bd6-7656ae366c11",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        816
+      ],
+      "id": "5827b2a5-5e6a-40c3-9d89-ceb8405cd305",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "fmn0sE98TS3RJJje",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $items('Code in JavaScript').length }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "id": "fbd4ad9a-a4dd-4981-ae9f-079d9966e5e6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "have unread emails"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d40e5ec9-0e8a-47da-9531-459001e4c4da",
+                    "leftValue": "={{ $items('Code in JavaScript').length }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "no email"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        960,
+        752
+      ],
+      "id": "75e7347e-4db3-4ea7-9790-306fccde4a9c",
+      "name": "Switch",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "spaceId": "spaces/AAAABGqT-dg",
+        "messageUi": {
+          "text": "No email pass 24 hours!"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleChat",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        880
+      ],
+      "id": "e0f19325-00de-4d7e-9a12-259bb89da605",
+      "name": "Create a message1",
+      "webhookId": "dcc2614e-5877-4f17-865b-a945f9e4d2bb",
+      "credentials": {
+        "googleChatOAuth2Api": {
+          "id": "RR5xsaNgLe5eeqeg",
+          "name": "Chat account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Filter email\n**Check** email in last 24 hours. ",
+        "height": 272,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        704,
+        640
+      ],
+      "id": "0c18fbce-3040-432a-84c5-92441c98e746",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Create a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "e2548d89-0b53-4ba4-ace1-4f567bef9595",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "48e02a9b6ed2d5b7ff405e002534315a82ff3850c4d6489efcc37fff8bc83143"
+  },
+  "id": "qIflCFmDo3A9bVL9",
+  "tags": []
+}
